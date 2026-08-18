@@ -11,6 +11,8 @@ class LogRequest(BaseModel):
     tokens_in: int = 0
     tokens_out: int = 0
     cost_usd: float = 0.0
+    # Optional — when provided, /log runs RAG-specific groundedness + retrieval evals
+    retrieved_chunks: Optional[list[str]] = None
 
 
 class TraceOut(BaseModel):
@@ -29,6 +31,12 @@ class TraceOut(BaseModel):
     flag_reason: Optional[str] = None
     input_blocked: bool
     input_block_reason: Optional[str] = None
+
+    retrieved_context: Optional[str] = None
+    retrieval_score: Optional[float] = None
+    groundedness_score: Optional[float] = None
+    unsupported_claims: Optional[str] = None
+    is_hallucination: bool = False
 
     class Config:
         from_attributes = True

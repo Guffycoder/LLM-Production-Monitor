@@ -39,6 +39,13 @@ class Trace(Base):
     input_blocked = Column(Boolean, default=False)
     input_block_reason = Column(Text, nullable=True)
 
+    # RAG-specific fields (nullable — only populated when retrieved_context is passed to /log)
+    retrieved_context = Column(Text, nullable=True)   # the chunks that were retrieved, joined
+    retrieval_score = Column(Float, nullable=True)    # 1-5, did retrieval fetch relevant chunks?
+    groundedness_score = Column(Float, nullable=True) # 1-5, is the response supported by context?
+    unsupported_claims = Column(Text, nullable=True)  # JSON-encoded list of hallucinated claims
+    is_hallucination = Column(Boolean, default=False)
+
 
 def init_db():
     Base.metadata.create_all(bind=engine)

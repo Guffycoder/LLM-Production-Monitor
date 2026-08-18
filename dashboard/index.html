@@ -67,11 +67,12 @@
   <div class="tabs">
     <button class="tab-btn active" data-tab="all">All traces</button>
     <button class="tab-btn" data-tab="flagged">Flagged only</button>
+    <button class="tab-btn" data-tab="hallucinations">🚨 Hallucinations (RAG)</button>
   </div>
 
   <div class="chart-card" style="padding:0;">
     <table id="trace-table">
-      <thead>
+      <thead id="trace-thead">
         <tr>
           <th>Time</th><th>Model</th><th>Prompt</th><th>Eval Score</th><th>Latency</th><th>Cost</th><th>Status</th>
         </tr>
@@ -79,7 +80,7 @@
       <tbody id="trace-tbody"></tbody>
     </table>
     <div class="empty-state" id="empty-state" style="display:none;">
-      No traces yet. Run <code>python scripts/demo_app.py</code> to generate demo traffic.
+      No traces yet. Run <code>python scripts/demo_app.py</code> or <code>python scripts/demo_rag_app.py</code> to generate demo traffic.
     </div>
   </div>
 </main>
@@ -150,6 +151,7 @@ function renderCharts(traces) {
 
 function renderTable(traces) {
   const tbody = document.getElementById('trace-tbody');
+  const thead = document.getElementById('trace-thead');
   const emptyState = document.getElementById('empty-state');
 
   if (traces.length === 0) {
@@ -159,6 +161,24 @@ function renderTable(traces) {
   }
   emptyState.style.display = 'none';
 
+  if (currentTab === 'hallucinations') {
+    thead.innerHTML = `<tr><th>Time</th><th>Prompt</th><th>Groundedness</th><th>Retrieval Score</th><th>Unsupported Claims</th></tr>`;
+    tbody.innerHTML = traces.map(t => {
+      let claims = [];
+      try { claims = JSON.parse(t.unsupported_claims || '[]'); } catch(e) {}
+      return `
+        <tr>
+          <td>${fmtTime(t.timestamp)}</td>
+          <td class="truncate" title="${t.prompt.replace(/"/g, '&quot;')}">${t.prompt}</td>
+          <td><span class="badge flagged">${t.groundedness_score !== null ? t.groundedness_score.toFixed(1) : '—'} / 5</span></td>
+          <td>${t.retrieval_score !== null ? t.retrieval_score.toFixed(1) : '—'} / 5</td>
+          <td class="truncate" title="${claims.join(' | ').replace(/"/g, '&quot;')}">${claims.join(' | ') || '—'}</td>
+        </tr>`;
+    }).join('');
+    return;
+  }
+
+  thead.innerHTML = `<tr><th>Time</th><th>Model</th><th>Prompt</th><th>Eval Score</th><th>Latency</th><th>Cost</th><th>Status</th></tr>`;
   tbody.innerHTML = traces.map(t => `
     <tr>
       <td>${fmtTime(t.timestamp)}</td>
@@ -167,7 +187,7 @@ function renderTable(traces) {
       <td>${t.eval_score !== null ? t.eval_score.toFixed(1) : '—'}</td>
       <td>${t.latency_ms.toFixed(0)} ms</td>
       <td>$${t.cost_usd.toFixed(5)}</td>
-      <td>${t.flagged ? `<span class="badge flagged" title="${t.flag_reason || ''}">Flagged</span>` : '<span class="badge ok">OK</span>'}</td>
+      <td>${t.is_hallucination ? `<span class="badge flagged" title="${t.flag_reason || ''}">🚨 Hallucination</span>` : t.flagged ? `<span class="badge flagged" title="${t.flag_reason || ''}">Flagged</span>` : '<span class="badge ok">OK</span>'}</td>
     </tr>
   `).join('');
 }
@@ -176,8 +196,12 @@ async function refresh() {
   const metrics = await fetchJSON('/metrics/summary');
   renderStats(metrics);
 
-  const path = currentTab === 'flagged' ? '/traces/flagged?limit=50' : '/traces?limit=50';
-  const traces = await fetchJSON(path);
+  const pathMap = {
+    flagged: '/traces/flagged?limit=50',
+    hallucinations: '/traces/hallucinations?limit=50',
+    all: '/traces?limit=50',
+  };
+  const traces = await fetchJSON(pathMap[currentTab]);
   renderTable(traces);
 
   const allTraces = await fetchJSON('/traces?limit=50');

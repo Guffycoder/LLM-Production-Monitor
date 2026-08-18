@@ -16,9 +16,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from apscheduler.schedulers.background import BackgroundScheduler
 
+import json
 from app.database import init_db, get_db, Trace, SessionLocal
 from app.schemas import LogRequest, TraceOut, MetricsSummary
-from app import evals, guardrails, alerting
+from app import evals, guardrails, alerting, rag_evals
 
 app = FastAPI(title="LLM Production Monitor", version="0.1.0")
 
@@ -64,6 +65,16 @@ def log_call(payload: LogRequest, db: Session = Depends(get_db)):
         payload.response, eval_result["eval_score"], eval_result["rule_issues"]
     )
 
+    # 4. RAG-specific evals — only run when the caller passed retrieved_chunks.
+    #    This is what a generic LLM monitor doesn't do: score groundedness
+    #    against the actual retrieved context, not just "is this a good response?"
+    rag_result = None
+    if payload.retrieved_chunks:
+        rag_result = rag_evals.run_rag_eval(payload.prompt, payload.response, payload.retrieved_chunks)
+        if rag_result["is_hallucination"] and not flagged:
+            flagged = True
+            flag_reason = f"hallucination: groundedness={rag_result['groundedness_score']}, unsupported claims found"
+
     trace = Trace(
         model=payload.model,
         prompt=payload.prompt,
@@ -78,6 +89,11 @@ def log_call(payload: LogRequest, db: Session = Depends(get_db)):
         flag_reason=flag_reason,
         input_blocked=input_blocked,
         input_block_reason=input_block_reason,
+        retrieved_context="\n---\n".join(payload.retrieved_chunks) if payload.retrieved_chunks else None,
+        retrieval_score=rag_result["retrieval_score"] if rag_result else None,
+        groundedness_score=rag_result["groundedness_score"] if rag_result else None,
+        unsupported_claims=json.dumps(rag_result["unsupported_claims"]) if rag_result else None,
+        is_hallucination=rag_result["is_hallucination"] if rag_result else False,
     )
     db.add(trace)
     db.commit()
@@ -95,6 +111,19 @@ def list_flagged(limit: int = Query(100, le=1000), db: Session = Depends(get_db)
     return (
         db.query(Trace)
         .filter(Trace.flagged == True)  # noqa: E712
+        .order_by(Trace.timestamp.desc())
+        .limit(limit)
+        .all()
+    )
+
+
+@app.get("/traces/hallucinations", response_model=list[TraceOut])
+def list_hallucinations(limit: int = Query(100, le=1000), db: Session = Depends(get_db)):
+    """RAG-specific view: responses flagged as ungrounded/hallucinated, separate
+    from generic quality flags — this is the distinguishing feature of this monitor."""
+    return (
+        db.query(Trace)
+        .filter(Trace.is_hallucination == True)  # noqa: E712
         .order_by(Trace.timestamp.desc())
         .limit(limit)
         .all()
