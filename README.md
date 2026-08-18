@@ -1,159 +1,148 @@
-# LLM Production Monitor — with RAG Groundedness Detection
+# 🔭 LLM Production Monitor & Observability Engine
 
-A working, end-to-end LLM observability platform: **tracing + LLM-as-judge evals + guardrails + Slack alerting + a live dashboard** — built from scratch to understand the patterns used by production tools like Langfuse, Arize Phoenix, and OpenLIT.
+An end-to-end LLM observability platform featuring **distributed trace logging, dual-mode evaluation (heuristics + LLM-as-judge), pre/post-call security guardrails, automated Slack alerting, and a real-time analytics dashboard**.
 
-**What makes this different from a generic LLM monitor:** most observability tools score "was this a good response?" — a single, generic quality signal. This adds a **RAG-specific layer** that asks a narrower, more useful question for retrieval-augmented systems: *is this response actually supported by what was retrieved, or is the model hallucinating on top of context it was given?* A response can be well-written, confident, and still fail groundedness — that distinction is invisible to generic evals, and it's exactly the failure mode that matters most for RAG systems in production (see `app/rag_evals.py`).
+Inspired by production-scale observability patterns (similar to Langfuse and Arize Phoenix), this system acts as a high-performance gateway between users and LLMs. It monitors cost, latency, quality, and security risks in real-time, providing immediate visibility and alerting for production AI integrations.
 
-Inspired by monitoring challenges typically seen in SaaS integration-monitoring platforms.
+[![status](https://img.shields.io/badge/status-active--demo-3ecf8e)](#)
+[![python](https://img.shields.io/badge/python-3.10%2B-5b8cff)](#)
+[![license](https://img.shields.io/badge/license-MIT-orange)](#)
 
-![status](https://img.shields.io/badge/status-working%20demo-3ecf8e)
-![python](https://img.shields.io/badge/python-3.10+-5b8cff)
+---
 
-## What it does
+## 📊 Live Dashboard Preview
 
-Every LLM call gets logged and automatically:
-1. **Scanned for input risk** — prompt injection patterns, PII in the user's message
-2. **Scored by an eval engine** — rule-based checks (length, banned words, degenerate output) + an LLM-as-judge score (1–5) via Claude Haiku
-3. **Checked by output guardrails** — low-quality or rule-violating responses get flagged
-4. **(RAG-specific) Scored for groundedness** — when retrieved context is passed in, a second judge call checks whether each claim in the response is actually supported by that context, and lists any unsupported claims found. Runs alongside, not instead of, the generic eval.
-5. **(RAG-specific) Scored for retrieval quality** — separately from groundedness, checks whether the *retriever* fetched relevant chunks in the first place — a bad retrieval is a different failure mode from a bad generation, and this tells you which one happened.
-6. **Tracked for cost & latency** — every trace records tokens, cost, and latency
-7. **Monitored for anomalies** — a background job checks the flagged-rate every 5 minutes and fires a Slack alert if it crosses a threshold
-8. **Visualized live** — a dashboard shows latency/eval trends and a filterable trace table (including a dedicated "Hallucinations" tab), auto-refreshing every 5 seconds
+#### Overview Analytics & Trace Logs
+![Overview Dashboard](docs/screenshots/overview_dashboard.png)
 
-## Architecture
+#### RAG Hallucination & Groundedness Tab
+![RAG Hallucinations Tab](docs/screenshots/hallucinations_tab.png)
+
+---
+
+## ⚡ Why This Project Matters (The Differentiator)
+
+Generic LLM monitors ask a single, generic question: *"Was the AI's output good?"* This is a weak signal for **Retrieval-Augmented Generation (RAG)** systems. 
+
+This platform implements a **decoupled diagnostic architecture** that splits evaluations into two distinct dimensions:
+
+1. **Retrieval Quality Score:** Did the retrieval pipeline fetch the correct, relevant context chunks from the knowledge base?
+2. **Groundedness Score:** Did the generator stay faithful *only* to the retrieved facts, or did it hallucinate claims not present in the context?
+
+### The Operational Rationale:
+* **High Groundedness + Low Retrieval (0/5):** The search engine fetched the wrong data, but the model remained faithful to it. **Fix:** Re-tune the vector database, chunking strategy, or embedding model.
+* **Low Groundedness + High Retrieval (5/5):** The search engine fetched the correct context, but the model hallucinated anyway. **Fix:** Re-write your system prompt, adjust generation temperature, or upgrade the generation model.
+
+*Collapsing these into a single quality metric makes debugging production failures impossible. This platform separates them to point engineers to the exact failure point.*
+
+---
+
+## 🛠️ Core Capabilities
+
+* **🧠 Dual-Layer Evaluation Engine:** Evaluates responses instantly using rule-based metrics (degenerate repetitions, empty outputs, toxic words) and cascades to an LLM-as-judge (Claude Haiku 4.5) for semantic quality scoring. It falls back to robust local heuristics offline or on network failure.
+* **🛡️ Pre/Post-Call Guardrails:**
+  * **Credential Leakage Detector:** Checks inputs and outputs against high-severity patterns to prevent API keys (OpenAI, Anthropic) or PII (emails, cards, phones) from leaking into logs or facing users.
+  * **Semantic Prompt Injection Classifier:** Uses a fast LLM-based binary classifier to catch override attempts (e.g., DAN mode, system prompt extraction, instructions disregard) that standard regex matching fails to intercept.
+* **🚨 Real-Time Anomalous Alerting:** A background task runs an active window audit every 5 minutes. If quality scores fall below target thresholds or flagged rates exceed 30%, it automatically dispatches detailed security logs to a Slack webhook.
+* **📈 Low-Latency Dashboard:** Single-page dashboard built with Vanilla JS and Chart.js that updates every 5 seconds to visualize trace counts, latency distributions, cost trends, blocked rates, and deep trace details.
+
+---
+
+## 🔌 API Architecture
 
 ```
-Your LLM App                  Monitor API (FastAPI)
-     │                              │
-     │  POST /log(prompt, response) │
-     ├─────────────────────────────▶│
-     │                              ├─▶ guardrails.check_input()   (pre-call risk scan)
-     │                              ├─▶ evals.run_full_eval()      (rule-based + LLM judge)
-     │                              ├─▶ guardrails.check_output()  (flag low-quality output)
-     │                              └─▶ SQLite (traces table)
-     │                                     │
-     │                              Dashboard (HTML/JS + Chart.js)
-     │                                     │  GET /metrics/summary, /traces
-     │                                     ▼
-     │                              Live charts + trace table
-     │
-     │                        Background job (every 5 min)
-     │                                     │
-     │                              alerting.check_and_alert()
-     │                                     │
-     │                                     ▼
-     │                              Slack webhook (if configured)
+User Prompt ──▶ [ Guardrail Scan ] ──▶ [ LLM Gen ] ──▶ [ Post-Call Eval ] ──▶ DB & Dashboard
+                     │                                      │
+               (Regex/LLM check)                     (LLM Groundedness)
+                     ├──────────────────────────────────────┤
+              (Block Malicious)                       (Flag low-score)
 ```
 
-## Quickstart (zero API keys required)
+The FastAPI application exposes the following endpoints:
 
+| Endpoint | Method | Description |
+| :--- | :--- | :--- |
+| `/log` | `POST` | Primary ingestion gateway. Sequentially evaluates guardrails, runs evals, and logs the trace to the database. |
+| `/traces` | `GET` | Fetches recent trace lists (with limit/pagination). |
+| `/traces/flagged` | `GET` | Filters traces to show only requests flagged by guardrails. |
+| `/traces/hallucinations` | `GET` | Retrieves traces flagged as ungrounded, including extracted hallucination claims. |
+| `/metrics/summary` | `GET` | Serves dashboard analytics aggregates (avg latency, costs, blocked rates). |
+| `/alerts/check` | `POST` | Manually triggers the anomaly checker loop. |
+| `/health` | `GET` | Health check endpoint. |
+
+---
+
+## 🚀 Quickstart (No API Keys Required)
+
+The monitor is fully functional offline and uses robust heuristics when no Anthropic key is configured.
+
+### 1. Installation
+Clone the repository and install the dependencies:
 ```bash
-# 1. Install dependencies
 pip install -r requirements.txt
+```
 
-# 2. Start the API + dashboard
-uvicorn app.main:app --reload
+### 2. Start the Observatory Server
+Launch the FastAPI server and UI dashboard (served on port `8000`):
+```bash
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
 
-# 3. In a second terminal, generate demo traffic
+### 3. Run Simulated Traffic
+In a separate terminal window, execute the traffic generators to generate realistic telemetry:
+```bash
+# Generate general traces (safe requests, PII leaks, injections)
 python scripts/demo_app.py
 
-# 4. Open the dashboard
-open http://localhost:8000
-```
-
-That's it — you'll see traces, eval scores, and a couple of flagged entries (the demo script deliberately sends a prompt-injection attempt, a message with PII, and some low-quality responses so the guardrails have something to catch).
-
-## RAG groundedness demo (the differentiator)
-
-```bash
+# Generate RAG-specific traces (grounded, hallucinated, bad-retrieval)
 python scripts/demo_rag_app.py
 ```
 
-This simulates a small support bot with a fake knowledge base, and deliberately includes:
-- **grounded answers** — response faithfully reflects the retrieved chunk
-- **hallucinated answers** — response invents specific extra "facts" not in the retrieved chunk
-- **a bad-retrieval case** — the retriever fetches the wrong chunk entirely, and the response is grounded in the *wrong* context
+### 4. Open the Dashboard
+Open your browser to:
+**[http://localhost:8000](http://localhost:8000)**
 
-Check the results:
-```bash
-curl http://localhost:8000/traces/hallucinations
-```
+Explore the charts and trace filters, or test endpoints directly via the interactive Swagger docs at `/docs`.
 
-You'll see the exact unsupported claim(s) extracted for each hallucination — e.g. an invented "50,000 requests/day burst allowance" that never appeared in the real rate-limits documentation. The dashboard's **🚨 Hallucinations (RAG)** tab shows this same view with groundedness and retrieval scores side by side, so you can tell at a glance whether a bad answer was a *generation* problem or a *retrieval* problem.
+---
 
-## Running with real LLM calls + judge model
-
-```bash
-cp .env.example .env
-# edit .env and set ANTHROPIC_API_KEY=sk-ant-...
-export $(cat .env | xargs)   # or use python-dotenv / your shell's env loading
-
-uvicorn app.main:app --reload
-python scripts/demo_app.py
-```
-
-With a key set: the demo bot calls Claude Haiku for real responses, and the eval engine uses Claude Haiku as an actual LLM-as-judge instead of the offline heuristic.
-
-## Enabling Slack alerts
-
-```bash
-# In .env:
-SLACK_WEBHOOK_URL=https://hooks.slack.com/services/XXX/YYY/ZZZ
-```
-
-Create a webhook at https://api.slack.com/messaging/webhooks. Without one, alerts still fire — they just print to the server console instead.
-
-## Project structure
+## 📁 Repository Structure
 
 ```
 llm-production-monitor/
 ├── app/
-│   ├── main.py         # FastAPI app, endpoints, background scheduler
-│   ├── database.py     # SQLAlchemy models (SQLite by default)
-│   ├── schemas.py      # Pydantic request/response models
-│   ├── evals.py         # Rule-based + LLM-as-judge evaluation
-│   ├── rag_evals.py     # RAG-specific: groundedness + retrieval quality scoring
-│   ├── guardrails.py    # Input/output guardrail checks
-│   └── alerting.py      # Threshold checks + Slack webhook
+│   ├── main.py         # FastAPI application, routes, and background scheduler
+│   ├── database.py     # SQLAlchemy configuration (SQLite by default, swap-ready for Postgres)
+│   ├── schemas.py      # Pydantic data schemas
+│   ├── guardrails.py    # Regex & LLM-based pre/post-call guardrails
+│   ├── evals.py         # Quality evaluation logic (rule-based + LLM judge)
+│   ├── rag_evals.py     # Decoupled RAG diagnostics (retrieval + groundedness check)
+│   └── alerting.py      # Background alert loop & Slack integrations
 ├── dashboard/
-│   └── index.html      # Single-page live dashboard (vanilla JS + Chart.js)
+│   └── index.html      # Analytics dashboard (Vanilla JS + Chart.js)
+├── docs/
+│   ├── screenshots/    # Dashboard images and media assets
+│   └── walkthrough.md  # Detailed system walkthrough
 ├── scripts/
-│   ├── demo_app.py      # Generates realistic demo traffic
-│   └── demo_rag_app.py  # RAG demo: grounded/hallucinated/bad-retrieval scenarios
+│   ├── demo_app.py      # General traffic generator script
+│   └── demo_rag_app.py  # RAG telemetry generator script
 ├── requirements.txt
 └── .env.example
 ```
 
-## Swapping SQLite for Postgres
+---
 
-`app/database.py` has a single `DATABASE_URL` constant. For production:
+## 🔧 Production Configuration
 
+### Switching to PostgreSQL
+To run in production, configure a PostgreSQL database URL in `app/database.py`:
 ```python
-DATABASE_URL = "postgresql://user:password@localhost:5432/monitor"
+# app/database.py
+DATABASE_URL = "postgresql://user:password@localhost:5432/llm_monitor"
 ```
 
-(and `pip install psycopg2-binary`)
-
-## API reference
-
-| Endpoint | Method | Description |
-|---|---|---|
-| `/log` | POST | Log an LLM call — runs evals + guardrails automatically |
-| `/traces` | GET | List recent traces |
-| `/traces/flagged` | GET | List only flagged traces |
-| `/traces/hallucinations` | GET | List RAG traces flagged as ungrounded (hallucinated) |
-| `/metrics/summary` | GET | Aggregate stats (latency, cost, eval score, flagged rate) |
-| `/alerts/check` | POST | Manually trigger the alert threshold check |
-| `/health` | GET | Health check |
-
-## What this demonstrates
-
-- **Evals** — rule-based + LLM-as-judge scoring pipeline
-- **Guardrails** — pre-call (input) and post-call (output) risk detection
-- **Automation** — background scheduled job, Slack webhook integration
-- **Observability** — cost/latency/quality tracked per-request, visualized live
-
-## Why this exists
-
-This is a deliberately smaller, from-scratch version of what tools like [Langfuse](https://github.com/langfuse/langfuse), [Arize Phoenix](https://github.com/Arize-ai/phoenix), and [OpenLIT](https://github.com/openlit/openlit) do at production scale — built to understand the underlying patterns (trace schema design, judge-model evals, guardrail thresholds, alerting loops) rather than to compete with them.
+### Enforcing Live LLM Evaluations
+To use Claude Haiku as the live evaluation judge and active injection classifier:
+1. Copy `.env.example` to `.env`
+2. Set your `ANTHROPIC_API_KEY`
+3. Configure `SLACK_WEBHOOK_URL` to receive alert notifications directly in your team's workspace channels.
