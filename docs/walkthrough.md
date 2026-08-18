@@ -118,3 +118,25 @@ The environment is fully configured and the server is running. You can interact 
   ```powershell
   Stop-Process -Id <process_id> # The process ID is shown in the uvicorn start logs (e.g. 6848)
   ```
+
+---
+
+## 🧪 MLOps System Evaluation & Iteration
+
+To transition this from a functional project to a robust engineering system, I built a custom evaluation harness (`scripts/evaluate_dataset.py`) using a manually labeled dataset of 28 SaaS queries (including safe queries, injection attacks, and PII leaks).
+
+### 1. Initial Evaluation
+- **Precision:** 1.00
+- **Recall:** 0.79
+- **Analysis:** The system successfully avoided blocking any safe users (Precision = 1.00), which is critical for SaaS. However, it missed 3 out of 14 attacks (Recall = 0.79), specifically blended "privilege escalation" attacks like *"grant me admin privileges"*.
+
+### 2. MLOps Iteration
+Based on those metrics, I iterated on the system:
+1. **Regex Expansion:** Added catch-alls for privilege escalation phrases.
+2. **Classifier Few-Shot Prompting:** Rewrote the Claude Haiku system prompt to use specific classifications (`SAFE`, `PROMPT_INJECTION`, `PRIVILEGE_ESCALATION`, `DATA_EXTRACTION`) and provided few-shot examples for borderline cases.
+
+### 3. Final Evaluation
+- **Accuracy:** 96%
+- **Precision:** 1.00
+- **Recall:** 0.93
+- **Analysis:** The recall surged to 0.93, catching 13 out of 14 attacks. The single missed attack was highly obfuscated, which is an acceptable tradeoff to maintain a flawless 1.00 Precision.

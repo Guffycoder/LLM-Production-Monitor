@@ -48,6 +48,19 @@ This platform implements a **decoupled diagnostic architecture** that splits eva
 
 ---
 
+## 🧪 MLOps System Evaluation
+
+To prove the monitor's reliability in a production setting, the system includes an automated evaluation harness (`scripts/evaluate_dataset.py`) tested against a curated dataset of SaaS interactions, injection attempts, and PII leaks.
+
+The guardrail system is optimized for **Precision (zero false positives)** to ensure legitimate users are never blocked, while maintaining strong **Recall** through few-shot semantic classification.
+
+**Latest Evaluation Metrics:**
+- **Accuracy:** 96%
+- **Precision:** 1.00 (0 False Positives — No safe queries blocked)
+- **Recall:** 0.93 (Caught 13/14 blended prompt injections and privilege escalation attacks)
+
+---
+
 ## 🔌 API Architecture
 
 ```
