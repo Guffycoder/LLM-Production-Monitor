@@ -9,7 +9,11 @@ Inspired by production-scale observability patterns (similar to Langfuse and Ari
 [![license](https://img.shields.io/badge/license-MIT-orange)](#)
 
 ---
+## 🌐 Live Deployment
 
+👉 https://web-production-9d818.up.railway.app
+
+> Fully deployed LLM monitoring system with real-time traffic and analytics dashboard.
 ## 📊 Live Dashboard Preview
 
 #### Overview Analytics & Trace Logs
@@ -19,7 +23,16 @@ Inspired by production-scale observability patterns (similar to Langfuse and Ari
 ![RAG Hallucinations Tab](docs/screenshots/hallucinations_tab.png)
 
 ---
+## 📊 Live System Metrics (Production Run)
 
+- Total Traces: 30+
+- Avg Latency: ~1043 ms (network + eval overhead)
+- Avg Eval Score: 3.27 / 5
+- Flagged Rate: 26.7%
+- Blocked Inputs: 4 (prompt injections / PII)
+> Demonstrates real-time guardrail enforcement and evaluation under live traffic.
+
+---
 ## ⚡ Why This Project Matters (The Differentiator)
 
 Generic LLM monitors ask a single, generic question: *"Was the AI's output good?"* This is a weak signal for **Retrieval-Augmented Generation (RAG)** systems. 
