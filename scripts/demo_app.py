@@ -18,7 +18,7 @@ import time
 import random
 import requests
 
-API_URL = os.environ.get("MONITOR_API_URL", "http://localhost:8000")
+API_URL = os.environ.get("MONITOR_API_URL", "https://web-production-9d818.up.railway.app")
 
 DEMO_PROMPTS = [
     "What's your refund policy?",
