@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>LLM Production Monitor | Sarthak Lakhera</title>
+<meta name="description" content="Production-grade LLM observability platform with decoupled RAG diagnostics, semantic guardrails, and MLOps evaluation. Built by Sarthak Lakhera."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#020817;
+  --surface:rgba(255,255,255,0.04);
+  --border:rgba(255,255,255,0.08);
+  --primary:#6366f1;
+  --cyan:#22d3ee;
+  --purple:#a855f7;
+  --green:#10b981;
+  --text:#f1f5f9;
+  --muted:#94a3b8;
+}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;overflow-x:hidden;}
+
+/* NAV */
+nav{position:fixed;top:0;width:100%;z-index:100;padding:1rem 2rem;display:flex;justify-content:space-between;align-items:center;backdrop-filter:blur(20px);background:rgba(2,8,23,0.8);border-bottom:1px solid var(--border);}
+.nav-logo{font-weight:800;font-size:1.1rem;background:linear-gradient(135deg,var(--cyan),var(--primary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.nav-links{display:flex;gap:2rem;list-style:none;}
+.nav-links a{color:var(--muted);text-decoration:none;font-size:.9rem;transition:color .2s;}
+.nav-links a:hover{color:var(--text);}
+.nav-btn{background:linear-gradient(135deg,var(--primary),var(--purple));color:#fff;padding:.5rem 1.2rem;border-radius:8px;text-decoration:none;font-size:.85rem;font-weight:600;transition:opacity .2s;}
+.nav-btn:hover{opacity:.85;}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:6rem 2rem 4rem;position:relative;overflow:hidden;}
+.hero::before{content:'';position:absolute;top:-50%;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(99,102,241,0.15) 0%,transparent 70%);pointer-events:none;}
+.badge{display:inline-flex;align-items:center;gap:.5rem;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);padding:.4rem 1rem;border-radius:999px;font-size:.8rem;color:var(--primary);margin-bottom:2rem;}
+.badge-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+h1{font-size:clamp(2.5rem,6vw,5rem);font-weight:900;line-height:1.1;margin-bottom:1.5rem;max-width:900px;}
+.grad{background:linear-gradient(135deg,var(--cyan) 0%,var(--primary) 50%,var(--purple) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.hero p{font-size:1.2rem;color:var(--muted);max-width:650px;line-height:1.7;margin-bottom:2.5rem;}
+.hero-btns{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--purple));color:#fff;padding:.85rem 2rem;border-radius:10px;text-decoration:none;font-weight:700;font-size:1rem;transition:transform .2s,box-shadow .2s;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(99,102,241,0.4);}
+.btn-secondary{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.85rem 2rem;border-radius:10px;text-decoration:none;font-weight:600;font-size:1rem;transition:border-color .2s,transform .2s;}
+.btn-secondary:hover{border-color:var(--primary);transform:translateY(-2px);}
+
+/* METRICS */
+.metrics{background:linear-gradient(135deg,rgba(99,102,241,0.1),rgba(168,85,247,0.1));border:1px solid var(--border);border-radius:20px;padding:2.5rem;margin:4rem auto;max-width:900px;display:grid;grid-template-columns:repeat(4,1fr);gap:2rem;text-align:center;}
+.metric-val{font-size:2.8rem;font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--primary));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.metric-label{color:var(--muted);font-size:.85rem;margin-top:.3rem;}
+
+/* SECTIONS */
+.section{padding:5rem 2rem;max-width:1100px;margin:0 auto;}
+.section-label{display:inline-block;color:var(--primary);font-size:.8rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:1rem;}
+.section-title{font-size:clamp(1.8rem,4vw,3rem);font-weight:800;margin-bottom:1rem;line-height:1.2;}
+.section-sub{color:var(--muted);font-size:1.05rem;line-height:1.7;max-width:650px;}
+
+/* FEATURES GRID */
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;margin-top:3rem;}
+.feature-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.8rem;transition:border-color .2s,transform .2s;}
+.feature-card:hover{border-color:var(--primary);transform:translateY(-4px);}
+.feature-icon{font-size:2rem;margin-bottom:1rem;}
+.feature-card h3{font-size:1.05rem;font-weight:700;margin-bottom:.5rem;}
+.feature-card p{color:var(--muted);font-size:.9rem;line-height:1.6;}
+
+/* SCREENSHOTS */
+.screenshots{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-top:3rem;}
+.screenshot-card{border-radius:16px;overflow:hidden;border:1px solid var(--border);transition:transform .2s,box-shadow .2s;}
+.screenshot-card:hover{transform:translateY(-4px);box-shadow:0 20px 60px rgba(0,0,0,0.4);}
+.screenshot-card img{width:100%;display:block;}
+.screenshot-card .cap{padding:1rem 1.2rem;background:var(--surface);}
+.screenshot-card .cap span{color:var(--muted);font-size:.85rem;}
+
+/* PIPELINE */
+.pipeline{margin-top:3rem;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2rem;overflow-x:auto;}
+.pipe-row{display:flex;align-items:center;justify-content:center;gap:.5rem;flex-wrap:wrap;}
+.pipe-box{background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);border-radius:10px;padding:.7rem 1.2rem;font-size:.85rem;font-weight:600;white-space:nowrap;}
+.pipe-box.green{background:rgba(16,185,129,0.1);border-color:rgba(16,185,129,0.3);color:var(--green);}
+.pipe-box.red{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);color:#f87171;}
+.pipe-box.cyan{background:rgba(34,211,238,0.1);border-color:rgba(34,211,238,0.3);color:var(--cyan);}
+.pipe-arrow{color:var(--muted);font-size:1.2rem;}
+
+/* TECH STACK */
+.tech-grid{display:flex;flex-wrap:wrap;gap:1rem;margin-top:2.5rem;}
+.tech-badge{display:inline-flex;align-items:center;gap:.5rem;background:var(--surface);border:1px solid var(--border);padding:.6rem 1.2rem;border-radius:8px;font-size:.85rem;font-weight:600;}
+
+/* EVAL SECTION */
+.eval-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem;margin-top:3rem;}
+.eval-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.8rem;}
+.eval-card h3{font-size:1rem;font-weight:700;margin-bottom:1rem;color:var(--muted);}
+.eval-row{display:flex;justify-content:space-between;align-items:center;padding:.6rem 0;border-bottom:1px solid var(--border);}
+.eval-row:last-child{border-bottom:none;}
+.eval-row .label{font-size:.9rem;color:var(--muted);}
+.eval-row .val{font-size:1rem;font-weight:700;}
+.val.good{color:var(--green);}
+.val.warn{color:#f59e0b;}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:2.5rem;text-align:center;color:var(--muted);font-size:.9rem;}
+footer a{color:var(--primary);text-decoration:none;}
+footer strong{color:var(--text);}
+
+/* ANIMATION */
+.fade-in{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease;}
+.fade-in.visible{opacity:1;transform:none;}
+
+@media(max-width:768px){
+  .metrics{grid-template-columns:repeat(2,1fr);}
+  .screenshots{grid-template-columns:1fr;}
+  .eval-grid{grid-template-columns:1fr;}
+  .nav-links{display:none;}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="nav-logo">LLM Monitor</span>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#pipeline">Architecture</a></li>
+    <li><a href="#evals">Evaluation</a></li>
+    <li><a href="#screenshots">Screenshots</a></li>
+  </ul>
+  <a class="nav-btn" href="https://github.com/Guffycoder/LLM-Production-Monitor" target="_blank">View on GitHub →</a>
+</nav>
+
+<section class="hero">
+  <div class="badge"><span class="badge-dot"></span>Production-Grade Observability</div>
+  <h1>The LLM Monitor That<br/><span class="grad">Actually Understands RAG</span></h1>
+  <p>A fully evaluated observability platform with decoupled RAG diagnostics, semantic prompt-injection guardrails, and an MLOps evaluation harness — not just a demo, but a measured system.</p>
+  <div class="hero-btns">
+    <a class="btn-primary" href="https://github.com/Guffycoder/LLM-Production-Monitor" target="_blank">⭐ View on GitHub</a>
+    <a class="btn-secondary" href="https://github.com/Guffycoder/LLM-Production-Monitor/blob/main/docs/walkthrough.md" target="_blank">Read the Walkthrough</a>
+  </div>
+
+  <div class="metrics fade-in">
+    <div><div class="metric-val" data-target="96">0</div><div class="metric-label">Accuracy %</div></div>
+    <div><div class="metric-val" data-target="100">0</div><div class="metric-label">Precision %</div></div>
+    <div><div class="metric-val" data-target="93">0</div><div class="metric-label">Recall %</div></div>
+    <div><div class="metric-val" data-target="28">0</div><div class="metric-label">Labeled Queries</div></div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section fade-in" id="features">
+  <span class="section-label">Capabilities</span>
+  <h2 class="section-title">Built for <span class="grad">Real Production</span></h2>
+  <p class="section-sub">Every feature was designed to solve a specific failure mode in production LLM systems, not to check a feature-list box.</p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🔬</div>
+      <h3>Decoupled RAG Diagnostics</h3>
+      <p>Splits quality into Retrieval Score vs. Groundedness Score, pinpointing exactly whether a failure is the retriever's or the generator's fault.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🛡️</div>
+      <h3>Semantic Guardrails</h3>
+      <p>A two-layer defense: regex patterns for known attack strings, then Claude Haiku few-shot classification for obfuscated injections and privilege escalation.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚖️</div>
+      <h3>LLM-as-Judge Evaluation</h3>
+      <p>Automatically scores every response for semantic quality using Claude Haiku, with a deterministic heuristic fallback for offline resilience.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🚨</div>
+      <h3>Real-Time Anomaly Alerting</h3>
+      <p>A background scheduler audits a rolling quality window every 5 minutes, dispatching alerts to Slack when flagged rates or low scores are detected.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Live Dashboard</h3>
+      <p>Single-page dashboard built with Chart.js refreshing every 5 seconds to show latency trends, cost curves, blocked rates, and trace-level drill-downs.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🧪</div>
+      <h3>MLOps Evaluation Harness</h3>
+      <p>28 hand-labeled SaaS queries evaluated against the guardrail system, producing Precision, Recall, and Accuracy metrics to prove measurable performance.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PIPELINE -->
+<section class="section fade-in" id="pipeline">
+  <span class="section-label">Architecture</span>
+  <h2 class="section-title">Pre/Post-Call <span class="grad">Guard Pipeline</span></h2>
+  <p class="section-sub">Every request flows through a four-stage evaluation pipeline before a trace is committed to the database.</p>
+  <div class="pipeline">
+    <div class="pipe-row">
+      <div class="pipe-box cyan">User Prompt</div>
+      <span class="pipe-arrow">→</span>
+      <div class="pipe-box">Regex Guardrail</div>
+      <span class="pipe-arrow">→</span>
+      <div class="pipe-box">LLM Classifier</div>
+      <span class="pipe-arrow">→</span>
+      <div class="pipe-box red">Block if Malicious</div>
+    </div>
+    <div style="text-align:center;margin:1rem 0;color:var(--muted);font-size:.85rem;">↓ Passes pre-call checks</div>
+    <div class="pipe-row">
+      <div class="pipe-box cyan">LLM Response</div>
+      <span class="pipe-arrow">→</span>
+      <div class="pipe-box">Eval Engine</div>
+      <span class="pipe-arrow">→</span>
+      <div class="pipe-box">RAG Groundedness</div>
+      <span class="pipe-arrow">→</span>
+      <div class="pipe-box green">Log to DB + Dashboard</div>
+    </div>
+  </div>
+</section>
+
+<!-- EVAL -->
+<section class="section fade-in" id="evals">
+  <span class="section-label">MLOps Evaluation</span>
+  <h2 class="section-title">Measured Performance, <span class="grad">Not Just Working Code</span></h2>
+  <p class="section-sub">The system was benchmarked against a curated labeled dataset and iterated on using Precision/Recall analysis — the same methodology used in production ML teams.</p>
+  <div class="eval-grid">
+    <div class="eval-card">
+      <h3>📉 Before Iteration (Baseline)</h3>
+      <div class="eval-row"><span class="label">Accuracy</span><span class="val warn">89%</span></div>
+      <div class="eval-row"><span class="label">Precision</span><span class="val good">1.00</span></div>
+      <div class="eval-row"><span class="label">Recall</span><span class="val warn">0.79</span></div>
+      <div class="eval-row"><span class="label">False Positives</span><span class="val good">0</span></div>
+      <div class="eval-row"><span class="label">Missed Attacks</span><span class="val warn">3</span></div>
+    </div>
+    <div class="eval-card">
+      <h3>📈 After Classifier Upgrade</h3>
+      <div class="eval-row"><span class="label">Accuracy</span><span class="val good">96%</span></div>
+      <div class="eval-row"><span class="label">Precision</span><span class="val good">1.00</span></div>
+      <div class="eval-row"><span class="label">Recall</span><span class="val good">0.93</span></div>
+      <div class="eval-row"><span class="label">False Positives</span><span class="val good">0</span></div>
+      <div class="eval-row"><span class="label">Missed Attacks</span><span class="val good">1</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- SCREENSHOTS -->
+<section class="section fade-in" id="screenshots">
+  <span class="section-label">Live Preview</span>
+  <h2 class="section-title">See It <span class="grad">In Action</span></h2>
+  <p class="section-sub">Real screenshots from the live dashboard running on FastAPI and SQLite.</p>
+  <div class="screenshots" style="margin-top:3rem;">
+    <div class="screenshot-card">
+      <img src="screenshots/overview_dashboard.png" alt="Overview Dashboard"/>
+      <div class="cap"><strong>Overview Analytics</strong><br/><span>Trace logs, latency trends, cost tracking</span></div>
+    </div>
+    <div class="screenshot-card">
+      <img src="screenshots/hallucinations_tab.png" alt="Hallucinations Tab"/>
+      <div class="cap"><strong>RAG Hallucination Diagnostics</strong><br/><span>Groundedness scores and unsupported claim extraction</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- TECH STACK -->
+<section class="section fade-in">
+  <span class="section-label">Tech Stack</span>
+  <h2 class="section-title">Built With <span class="grad">Production Tools</span></h2>
+  <div class="tech-grid">
+    <span class="tech-badge">⚡ FastAPI</span>
+    <span class="tech-badge">🐍 Python 3.11</span>
+    <span class="tech-badge">🗄️ SQLite / SQLAlchemy</span>
+    <span class="tech-badge">🤖 Anthropic Claude Haiku</span>
+    <span class="tech-badge">📊 Chart.js</span>
+    <span class="tech-badge">📅 APScheduler</span>
+    <span class="tech-badge">🔐 Regex Guardrails</span>
+    <span class="tech-badge">📡 Slack Webhooks</span>
+  </div>
+</section>
+
+<footer>
+  <p>Built by <strong>Sarthak Lakhera</strong> &nbsp;·&nbsp; <a href="https://github.com/Guffycoder/LLM-Production-Monitor" target="_blank">GitHub Repository</a></p>
+  <p style="margin-top:.5rem;font-size:.8rem;">LLM Production Monitor — Production-grade observability for AI systems</p>
+</footer>
+
+<script>
+// Intersection Observer for fade-in
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+}, {threshold: 0.1});
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// Counter animation
+function animateCounter(el, target, duration=1800) {
+  let start = 0;
+  const step = target / (duration / 16);
+  const timer = setInterval(() => {
+    start += step;
+    if(start >= target) { el.textContent = target; clearInterval(timer); return; }
+    el.textContent = Math.floor(start);
+  }, 16);
+}
+
+const metricObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if(e.isIntersecting) {
+      document.querySelectorAll('.metric-val').forEach(el => {
+        animateCounter(el, parseInt(el.dataset.target));
+      });
+      metricObserver.disconnect();
+    }
+  });
+}, {threshold: 0.5});
+const metricsEl = document.querySelector('.metrics');
+if(metricsEl) metricObserver.observe(metricsEl);
+</script>
+</body>
+</html>
