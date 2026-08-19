@@ -1,26 +1,31 @@
 # 🔭 LLM Production Monitor & Observability Engine
+## 🌐 Live Deployment
 
-An end-to-end LLM observability platform featuring **distributed trace logging, dual-mode evaluation (heuristics + LLM-as-judge), pre/post-call security guardrails, automated Slack alerting, and a real-time analytics dashboard**.
+👉 https://web-production-9d818.up.railway.app
 
-Inspired by production-scale observability patterns (similar to Langfuse and Arize Phoenix), this system acts as a high-performance gateway between users and LLMs. It monitors cost, latency, quality, and security risks in real-time, providing immediate visibility and alerting for production AI integrations.
+> Fully deployed LLM monitoring system with real-time traffic and analytics dashboard.
+
+
+## 📊 Live Dashboard Preview
+
+#### Overview Analytics & Trace Logs
+![Overview Dashboard](docs/screenshots/overview_dashboard.png)
+Tracks every LLM request from prompt → response → evaluation with latency and cost metrics.
+
+---
+#### RAG Hallucination & Groundedness Tab
+![RAG Hallucinations Tab](docs/screenshots/hallucinations_tab.png)
+Separates retrieval failure from model hallucination — enabling precise debugging.
+
+
+> Production-grade LLM observability system that tracks quality, cost, latency, and security in real time.
 
 [![status](https://img.shields.io/badge/status-active--demo-3ecf8e)](#)
 [![python](https://img.shields.io/badge/python-3.10%2B-5b8cff)](#)
 [![license](https://img.shields.io/badge/license-MIT-orange)](#)
 
 ---
-## 🌐 Live Deployment
 
-👉 https://web-production-9d818.up.railway.app
-
-> Fully deployed LLM monitoring system with real-time traffic and analytics dashboard.
-## 📊 Live Dashboard Preview
-
-#### Overview Analytics & Trace Logs
-![Overview Dashboard](docs/screenshots/overview_dashboard.png)
-
-#### RAG Hallucination & Groundedness Tab
-![RAG Hallucinations Tab](docs/screenshots/hallucinations_tab.png)
 
 ---
 ## 📊 Live System Metrics (Production Run)
