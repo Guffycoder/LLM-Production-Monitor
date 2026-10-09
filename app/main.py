@@ -34,9 +34,11 @@ app.add_middleware(
 @app.on_event("startup")
 def startup():
     init_db()
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(_scheduled_alert_check, "interval", minutes=5)
-    scheduler.start()
+    import os
+    if not os.getenv("VERCEL"):
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(_scheduled_alert_check, "interval", minutes=5)
+        scheduler.start()
 
 
 def _scheduled_alert_check():
