@@ -10,7 +10,7 @@ import re
 import os
 
 PII_PATTERNS = {
-    "email": re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"),
+    "email": re.compile(r"[a-z0-A-Z9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"),
     "phone": re.compile(r"\b\d{10}\b|\b\d{3}[-.\s]\d{3}[-.\s]\d{4}\b"),
     "credit_card": re.compile(r"\b(?:\d[ -]*?){13,16}\b"),
     "api_key": re.compile(r"sk-ant-[a-zA-Z0-9-]{30,}|sk-[a-zA-Z0-9]{32,}"),

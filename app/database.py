@@ -6,9 +6,15 @@ import datetime
 from sqlalchemy import create_engine, Column, Integer, String, Float, Boolean, DateTime, Text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = "sqlite:///./monitor.db"
+import os
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+# Fall back to /tmp/monitor.db on Vercel because the root is read-only
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////tmp/monitor.db")
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+connect_args = {"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
