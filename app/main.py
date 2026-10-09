@@ -169,5 +169,5 @@ def health():
 
 
 import os
-dashboard_path = os.path.join(os.path.dirname(__file__), "..", "dashboard")
-app.mount("/", StaticFiles(directory=dashboard_path, html=True), name="dashboard")
+dashboard_path = os.path.join(os.path.dirname(__file__), "..", "public")
+app.mount("/", StaticFiles(directory=dashboard_path, html=True), name="public")

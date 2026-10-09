@@ -6,18 +6,13 @@
       "use": "@vercel/python"
     }
   ],
-  "routes": [
-    {
-      "src": "/(docs|openapi.json|log|traces|metrics|alerts|health)(.*)",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/",
-      "dest": "/dashboard/index.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/dashboard/$1"
-    }
+  "rewrites": [
+    { "source": "/docs", "destination": "/api/index.py" },
+    { "source": "/openapi.json", "destination": "/api/index.py" },
+    { "source": "/log", "destination": "/api/index.py" },
+    { "source": "/traces(.*)", "destination": "/api/index.py" },
+    { "source": "/metrics(.*)", "destination": "/api/index.py" },
+    { "source": "/alerts(.*)", "destination": "/api/index.py" },
+    { "source": "/health", "destination": "/api/index.py" }
   ]
 }
