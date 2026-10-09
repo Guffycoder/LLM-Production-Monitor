@@ -1,11 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/index.py",
-      "use": "@vercel/python"
-    }
-  ],
   "rewrites": [
     { "source": "/docs", "destination": "/api/index.py" },
     { "source": "/openapi.json", "destination": "/api/index.py" },
