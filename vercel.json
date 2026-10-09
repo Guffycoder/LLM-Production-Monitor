@@ -12,12 +12,12 @@
       "dest": "/api/index.py"
     },
     {
-      "src": "/(.*)",
-      "dest": "/dashboard/$1"
-    },
-    {
       "src": "/",
       "dest": "/dashboard/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dashboard/$1"
     }
   ]
 }
