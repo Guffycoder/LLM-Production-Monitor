@@ -1,9 +1,23 @@
 {
   "version": 2,
-  "rewrites": [
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": "/api/index.py"
+      "src": "api/index.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(docs|openapi.json|log|traces|metrics|alerts|health)(.*)",
+      "dest": "/api/index.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dashboard/$1"
+    },
+    {
+      "src": "/",
+      "dest": "/dashboard/index.html"
     }
   ]
 }

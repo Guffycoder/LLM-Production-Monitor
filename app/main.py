@@ -168,5 +168,6 @@ def health():
     return {"status": "ok", "time": time.time()}
 
 
-# Serve the dashboard at /
-app.mount("/", StaticFiles(directory="dashboard", html=True), name="dashboard")
+import os
+dashboard_path = os.path.join(os.path.dirname(__file__), "..", "dashboard")
+app.mount("/", StaticFiles(directory=dashboard_path, html=True), name="dashboard")
