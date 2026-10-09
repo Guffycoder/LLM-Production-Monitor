@@ -33,7 +33,10 @@ app.add_middleware(
 
 @app.on_event("startup")
 def startup():
-    init_db()
+    try:
+        init_db()
+    except Exception as e:
+        print("Database initialization failed:", e)
     import os
     if not os.getenv("VERCEL"):
         scheduler = BackgroundScheduler()

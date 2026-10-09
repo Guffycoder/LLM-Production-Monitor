@@ -11,7 +11,13 @@ import os
 # Fall back to /tmp/monitor.db on Vercel because the root is read-only
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:////tmp/monitor.db")
 if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+pg8000://", 1)
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
+
+# Remove problematic channel_binding query param if present from Neon
+if "channel_binding=" in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.split("&channel_binding=")[0]
 
 connect_args = {"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
 engine = create_engine(DATABASE_URL, connect_args=connect_args)
