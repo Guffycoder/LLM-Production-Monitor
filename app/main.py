@@ -174,5 +174,7 @@ def health():
 
 
 import os
-dashboard_path = os.path.join(os.path.dirname(__file__), "..", "public")
-app.mount("/", StaticFiles(directory=dashboard_path, html=True), name="public")
+if not os.getenv("VERCEL"):
+    from fastapi.staticfiles import StaticFiles
+    dashboard_path = os.path.join(os.path.dirname(__file__), "..", "public")
+    app.mount("/", StaticFiles(directory=dashboard_path, html=True), name="public")
